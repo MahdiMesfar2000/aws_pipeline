@@ -29,20 +29,20 @@ variable "availability_zone_2" {
 }
 
 variable "ssh_key_name" {
-description = "The name of the SSH key pair to be created"
-type = string
-default = "deployer_key"
+  description = "The name of the SSH key pair to be created"
+  type        = string
+  default     = "deployer_key"
 }
 # EC2 Instance Type
 variable "instance_type" {
-description = "The type of EC2 instance"
-type = string
-default = "t2.micro"
+  description = "The type of EC2 instance"
+  type        = string
+  default     = "t2.micro"
 }
 # EC2 AMI ID
 variable "ec2_ami_id" {
-description = "The AMI ID for the EC2 instance"
-type = string
-default = "ami-0866a3c8686eaeeba"
+  description = "The AMI ID for the EC2 instance"
+  type        = string
+  default     = "ami-0866a3c8686eaeeba"
 }
 

@@ -2,19 +2,26 @@
 
 terraform {
   required_providers {
-	aws = {
-	source = "hashicorp/aws"
-	version = "~> 3.0"
-	}
-	random = {
-	source = "hashicorp/random"
-	version = "~> 3.0"
-	}
-	tls = {
-	source = "hashicorp/tls"
-	version = "~> 3.0"
-	}
-	}
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 3.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
+    tls = {
+      source  = "hashicorp/tls"
+      version = "~> 3.0"
+    }
+  }
+  backend "s3" {
+    bucket         = "custom-terraform-state-bucket-123456-86534c56" # Replace with your S3 bucket name
+    key            = "aws-backend/terraform.tfstate"          # Location of the state file in the bucket
+    region         = "us-east-1"                              # AWS region
+    dynamodb_table = "custom-terraform-state-locks-123456"           # Replace with your DynamoDB table name
+    encrypt        = true                                     # Enables encryption for the state file
+  }
 }
 
 # AWS provider configuration

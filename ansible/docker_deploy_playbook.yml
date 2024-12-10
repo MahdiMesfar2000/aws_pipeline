@@ -156,11 +156,6 @@
       docker-compose up -d
     args:
       chdir: "{{ project_src_path }}"
-  - name: Wait for container to be ready
-    command: docker container wait backend-app
-  - name: Pause to give containers time to stabilize
-    pause:
-      seconds: 30
   - name: Run makemigrations inside backend container
     command: docker exec {{ backend_container_name }} python manage.py makemigrations
   - name: Run migrate inside backend container
