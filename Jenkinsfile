@@ -32,7 +32,7 @@ pipeline {
                     }
                     dir('terraform') {
                         // Initialize Terraform
-                        sh 'terraform init'
+                        sh 'terraform init -force-copy'
                         sh 'terraform plan -lock=false'
 
                         // Apply Terraform configuration
