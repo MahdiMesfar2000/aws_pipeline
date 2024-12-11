@@ -1,15 +1,5 @@
 # main.tf
 
-variable "s3_bucket_name" {
-  description = "The name of the S3 bucket to store Terraform state"
-  default     = "custom-terraform-state-bucket-123456"
-}
-
-variable "dynamodb_table_name" {
-  description = "The name of the DynamoDB table for state locking"
-  default     = "custom-terraform-state-locks-123456"
-}
-
 terraform {
   required_providers {
     aws = {
