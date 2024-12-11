@@ -26,8 +26,12 @@ pipeline {
             steps {
                 script {
                     dir('terraform/remote-backend') {
-                        sh 'terraform init'
-                        // Apply Terraform configuration
+                        try {
+                            sh 'terraform init -migrate-state'
+                        } catch (Exception e) {
+                            echo 'State migration skipped. Reconfiguring backend.'
+                            sh 'terraform init -reconfigure'
+                        }
                         sh 'terraform apply --auto-approve'
                     }
                     dir('terraform') {
