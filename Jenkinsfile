@@ -270,7 +270,7 @@ pipeline {
                         sh '''
                         echo "Running Ansible playbook inside the container"
                         CONTAINER_NAME="my_ansible_container"
-                        PLAYBOOK="docker_deploy_playbook.yml"
+                        PLAYBOOK="docker_deploy_playbook.yaml"
                         INVENTORY="hosts"
                         # Check if playbook exists
                         if [ -f "${PLAYBOOK}" ]; then
