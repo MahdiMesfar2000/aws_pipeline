@@ -124,7 +124,7 @@ pipeline {
                     dir('frontend') {
                         script {
                             echo 'Building Frontend Docker Image...'
-                            def frontendImage = docker.build('frontend')
+                            def frontendImage = docker.build('frontend-app')
                             echo "Built Image: ${frontendImage.id}"
                         }
                     }
@@ -135,7 +135,7 @@ pipeline {
                     dir('backend') {
                         script {
                             echo 'Building Backend Docker Image...'
-                            def backendImage = docker.build('backend')
+                            def backendImage = docker.build('backend-app')
                             echo "Built Image: ${backendImage.id}"
                         }
                     }
