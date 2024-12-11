@@ -26,13 +26,13 @@ pipeline {
             steps {
                 script {
                     dir('terraform/remote-backend') {
-                        sh 'terraform init -force-copy'
+                        sh 'terraform init'
                         // Apply Terraform configuration
                         sh 'terraform apply --auto-approve'
                     }
                     dir('terraform') {
                         // Initialize Terraform
-                        sh 'terraform init -force-copy'
+                        sh 'terraform init'
                         sh 'terraform plan -lock=false'
 
                         // Apply Terraform configuration
