@@ -16,10 +16,10 @@ terraform {
     }
   }
   backend "s3" {
-    bucket         = "custom-terraform-state-bucket-123456-86534c56"
+    bucket         = "${var.s3_bucket_name}-${random_id.bucket_suffix.hex}"
     key            = "aws-backend/main/terraform.tfstate"
     region         = "us-east-1" # AWS region
-    dynamodb_table = "custom-terraform-state-locks-123456"
+    dynamodb_table = var.dynamodb_table_name
     encrypt        = true # Enables encryption for the state file
   }
 }
@@ -100,7 +100,7 @@ resource "aws_key_pair" "deployer_key" {
 
 # Store the SSH private key in S3
 resource "aws_s3_bucket_object" "private_key_object" {
-  bucket                 = "custom-terraform-state-bucket-123456-86534c56"
+  bucket                 = "${var.s3_bucket_name}-${random_id.bucket_suffix.hex}"
   key                    = "${var.ssh_key_name}.pem"
   content                = tls_private_key.example_ssh_key.private_key_pem
   acl                    = "private"

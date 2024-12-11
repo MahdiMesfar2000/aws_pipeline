@@ -1,5 +1,15 @@
 # main.tf
 
+variable "s3_bucket_name" {
+  description = "The name of the S3 bucket to store Terraform state"
+  default     = "custom-terraform-state-bucket-123456"
+}
+
+variable "dynamodb_table_name" {
+  description = "The name of the DynamoDB table for state locking"
+  default     = "custom-terraform-state-locks-123456"
+}
+
 terraform {
   required_providers {
     aws = {
@@ -16,10 +26,10 @@ terraform {
     }
   }
   backend "s3" {
-    bucket         = "custom-terraform-state-bucket-123456-86534c56" # Replace with your S3 bucket name
+    bucket         = "${var.s3_bucket_name}-${random_id.bucket_suffix.hex}" # Use the same bucket name
     key            = "aws-backend/terraform.tfstate"          # Location of the state file in the bucket
     region         = "us-east-1"                              # AWS region
-    dynamodb_table = "custom-terraform-state-locks-123456"           # Replace with your DynamoDB table name
+    dynamodb_table = var.dynamodb_table_name                  # Use the variable for DynamoDB table name
     encrypt        = true                                     # Enables encryption for the state file
   }
 }
