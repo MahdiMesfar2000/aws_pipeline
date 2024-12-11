@@ -46,6 +46,8 @@ resource "aws_s3_bucket_versioning" "terraform_bucket_versioning" {
   versioning_configuration {
     status = "Enabled"
   }
+
+  depends_on = [aws_s3_bucket.terraform_state]
 }
 
 # Enable server-side encryption for the S3 bucket
@@ -57,6 +59,8 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_state_c
       sse_algorithm = "AES256"
     }
   }
+
+  depends_on = [aws_s3_bucket.terraform_state]
 }
 
 # DynamoDB table for state locking
