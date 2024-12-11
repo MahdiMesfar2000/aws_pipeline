@@ -121,24 +121,24 @@ pipeline {
         }
         stage('Build Frontend Docker Image') {
             steps {
+                script {
                     dir('frontend') {
-                        script {
-                            echo 'Building Frontend Docker Image...'
-                            def frontendImage = docker.build('frontend-app')
-                            echo "Built Image: ${frontendImage.id}"
-                        }
+                        echo 'Building Frontend Docker Image...'
+                        def frontendImage = docker.build('frontend-app')
+                        echo "Built Image: ${frontendImage.id}"
                     }
+                }
             }
         }
         stage('Build Backend Docker Image') {
             steps {
+                script {
                     dir('backend') {
-                        script {
-                            echo 'Building Backend Docker Image...'
-                            def backendImage = docker.build('backend-app')
-                            echo "Built Image: ${backendImage.id}"
-                        }
+                        echo 'Building Backend Docker Image...'
+                        def backendImage = docker.build('backend-app')
+                        echo "Built Image: ${backendImage.id}"
                     }
+                }
             }
         }
         stage('Login to AWS ECR') {
