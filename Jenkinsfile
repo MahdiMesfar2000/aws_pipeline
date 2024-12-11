@@ -275,7 +275,7 @@ pipeline {
                         # Check if playbook exists
                         if [ -f "${PLAYBOOK}" ]; then
                             echo "Playbook ${PLAYBOOK} found. Running it now..."
-                            docker exec ${CONTAINER_NAME} ansible-playbook -i ${INVENTORY} ${PLAYBOOK}
+                            docker exec ${CONTAINER_NAME} ansible-playbook -i ${INVENTORY} ${PLAYBOOK} --extra-vars "aws_access_key_id=${AWS_ACCESS_KEY_ID} aws_secret_access_key=${AWS_SECRET_ACCESS_KEY}"
                         else
                             echo "Playbook ${PLAYBOOK} not found!"
                             exit 1

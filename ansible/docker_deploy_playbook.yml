@@ -112,13 +112,16 @@
   gather_facts: False
   become: yes
   vars_files:
-  - ansible-vars.yaml
+    - ansible-vars.yaml
   tasks:
     - name: Log in to Amazon ECR
       shell: | 
         aws ecr get-login-password --region {{ region }} | docker login --username AWS --password-stdin {{ ecr_url }}
       args:
         executable: /bin/bash
+      environment:
+        AWS_ACCESS_KEY_ID: "{{ aws_access_key_id }}"
+        AWS_SECRET_ACCESS_KEY: "{{ aws_secret_access_key }}"
     - name: Pull frontend Docker image from ECR
       docker_image:
         name: "{{ ecr_url }}/{{ ecr_repository }}"
@@ -140,30 +143,30 @@
   gather_facts: False
   become: yes
   vars_files:
-  - ansible-vars.yaml
+    - ansible-vars.yaml
   tasks:
-  - name: Create Docker Network
-    docker_network:
-      name: "{{ docker_network_name }}"
-      state: present
-  - name: Copy Docker Compose file to the EC2 instance
-    copy:
-      src: "{{ compose_local_path }}"
-      dest: "{{ compose_remote_path }}"
-  - name: Start Docker containers from Docker Compose
-    shell: |
-      docker-compose up -d
-    args:
-      chdir: "{{ project_src_path }}"
-  - name: Run makemigrations inside backend container
-    command: docker exec {{ backend_container_name }} python manage.py makemigrations
-  - name: Run migrate inside backend container
-    command: docker exec {{ backend_container_name }} python manage.py migrate
-  - name: Create superuser inside backend container
-    command: >
-      docker exec {{ backend_container_name }} python manage.py shell -c
-      "from django.contrib.auth import get_user_model;
-      User = get_user_model();
-      User.objects.filter(username='{{ superuser_username }}').exists() or
-      User.objects.create_superuser('{{ superuser_username }}', '{{ superuser_email }}', '{{ superuser_password
-      }}')"
+    - name: Create Docker Network
+      docker_network:
+        name: "{{ docker_network_name }}"
+        state: present
+    - name: Copy Docker Compose file to the EC2 instance
+      copy:
+        src: "{{ compose_local_path }}"
+        dest: "{{ compose_remote_path }}"
+    - name: Start Docker containers from Docker Compose
+      shell: |
+        docker-compose up -d
+      args:
+        chdir: "{{ project_src_path }}"
+    - name: Run makemigrations inside backend container
+      command: docker exec {{ backend_container_name }} python manage.py makemigrations
+    - name: Run migrate inside backend container
+      command: docker exec {{ backend_container_name }} python manage.py migrate
+    - name: Create superuser inside backend container
+      command: >
+        docker exec {{ backend_container_name }} python manage.py shell -c
+        "from django.contrib.auth import get_user_model;
+        User = get_user_model();
+        User.objects.filter(username='{{ superuser_username }}').exists() or
+        User.objects.create_superuser('{{ superuser_username }}', '{{ superuser_email }}', '{{ superuser_password
+        }}')"
