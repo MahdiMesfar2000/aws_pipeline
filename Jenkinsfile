@@ -109,5 +109,192 @@ pipeline {
                 }
             }
         }
+        stage('Create Database in RDS') {
+            steps {
+                script {
+                    sh """
+                    mysql -h ${RDS_ENDPOINT} -P 3306 -u dbuser -pDBpassword2024 -e "CREATE DATABASE IF NOT EXISTS enis_tp;"
+                    mysql -h ${RDS_ENDPOINT} -P 3306 -u dbuser -pDBpassword2024 -e "SHOW DATABASES;"
+                    """
+                }
+            }
+        }
+        stage('Build Frontend Docker Image') {
+            steps {
+                    dir('frontend') {
+                        script {
+                            echo 'Building Frontend Docker Image...'
+                            def frontendImage = docker.build('frontend-app')
+                            echo "Built Image: ${frontendImage.id}"
+                        }
+                    }
+            }
+        }
+        stage('Build Backend Docker Image') {
+            steps {
+                    dir('backend') {
+                        script {
+                            echo 'Building Backend Docker Image...'
+                            def backendImage = docker.build('backend-app')
+                            echo "Built Image: ${backendImage.id}"
+                        }
+                    }
+            }
+        }
+        stage('Login to AWS ECR') {
+            steps {
+                script {
+                    sh '''
+                    # Debug environment
+                    echo "PATH: $PATH"
+                    echo "AWS CLI version:"
+                    aws --version || { echo "AWS CLI not installed"; exit 1; }
+
+                    echo "Docker version:"
+                    docker --version || { echo "Docker CLI not installed"; exit 1; }
+
+                    # Login to ECR
+                    aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REPO_URL}
+                    '''
+                }
+            }
+        }
+        stage('Tag and Push Frontend Image') {
+            steps {
+                script {
+                    echo 'Tagging and pushing Frontend Image...'
+                    sh "docker tag frontend-app:latest $IMAGE_REPO_FRONTEND"
+                    sh "docker push $IMAGE_REPO_FRONTEND"
+                }
+            }
+        }
+        stage('Tag and Push Backend Image') {
+            steps {
+                script {
+                    echo 'Tagging and pushing Backend Image...'
+                    sh "docker tag backend-app:latest $IMAGE_REPO_BACKEND"
+                    sh "docker push $IMAGE_REPO_BACKEND"
+                }
+            }
+        }
+        stage('Download SSH Key from S3') {
+            steps {
+                script {
+                    dir('ansible') {
+                        sh """
+                        # Check and delete the existing key if it exists
+                        if [ -f "deployer_key.pem" ]; then
+                            echo "Deleting existing deployer_key.pem"
+                            rm deployer_key.pem
+                        fi
+
+                        # Download the SSH key from S3
+                        aws s3 cp ${DEPLOYER_KEY_URI} deployer_key.pem
+
+                        # Set the proper permissions for the private key
+                        chmod 600 deployer_key.pem
+                        """
+                    }
+                }
+            }
+        }
+        stage('Update Hosts File') {
+            steps {
+                script {
+                    dir('ansible') {
+                        sh """
+                        if [ -f "hosts" ]; then
+                            echo "Found hosts file at \$(pwd)"
+                            sed -i "2s|.*|${EC2_PUBLIC_IP}|" hosts
+                            echo "Updated hosts file:"
+                            cat hosts
+                        else
+                            echo "hosts file not found in \$(pwd)!"
+                            exit 1
+                        fi
+                        """
+                    }
+                }
+            }
+        }
+        stage('Check and Manage Ansible Container') {
+            steps {
+                script {
+                    dir('ansible') {
+                        sh '''
+                        echo "Checking and managing the 'my_ansible_container'"
+                        CONTAINER_NAME="my_ansible_container"
+                        IMAGE_NAME="cytopia/ansible"
+                        # Stop and remove the container if it exists
+                        if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+                            echo "Container ${CONTAINER_NAME} exists. Stopping and removing it..."
+                            docker stop ${CONTAINER_NAME} || true
+                            docker rm ${CONTAINER_NAME} || true
+                        fi
+                        # Create and start a new container with volume mounted
+                        echo "Creating and starting a new container with the ansible directory mounted..."
+                        docker run -dit --name ${CONTAINER_NAME} \
+                        -v $(pwd):/ansible \
+                        -w /ansible \
+                        ${IMAGE_NAME} \
+                        sh -c 'while true; do sleep 30; done'
+                        # Verify the ansible directory and its contents in the container
+                        echo "Verifying the ansible directory and its contents in the container:"
+                        docker exec ${CONTAINER_NAME} sh -c "ls /ansible && cat /ansible/hosts || echo 'Directory or file not found'"
+                        '''
+                    }
+                }
+            }
+        }
+        stage('Install OpenSSH in Ansible Container') {
+            steps {
+                script {
+                    dir('ansible') {
+                        sh '''
+                        echo "Installing OpenSSH in the Ansible container"
+                        CONTAINER_NAME="my_ansible_container"
+                        # Install OpenSSH
+                        docker exec ${CONTAINER_NAME} sh -c "apk update && apk add openssh"
+                        # Verify OpenSSH installation
+                        echo "Verifying OpenSSH installation"
+                        docker exec ${CONTAINER_NAME} ssh -V || echo "OpenSSH not installed correctly"
+                        '''
+                    }
+                }
+            }
+        }
+        stage('Run Ansible Playbook') {
+            steps {
+                script {
+                    dir('ansible') {
+                        sh '''
+                        echo "Running Ansible playbook inside the container"
+                        CONTAINER_NAME="my_ansible_container"
+                        PLAYBOOK="docker_deploy_playbook.yml"
+                        INVENTORY="hosts"
+                        # Check if playbook exists
+                        if [ -f "${PLAYBOOK}" ]; then
+                            echo "Playbook ${PLAYBOOK} found. Running it now..."
+                            docker exec ${CONTAINER_NAME} ansible-playbook -i ${INVENTORY} ${PLAYBOOK}
+                        else
+                            echo "Playbook ${PLAYBOOK} not found!"
+                            exit 1
+                        fi
+                        '''
+                    }
+                }
+            }
+        }
+    }
+    post {
+        success {
+            script {
+                def instanceUrl = "http://${EC2_PUBLIC_IP}:81"
+                echo "The instance is successfully deployed. Access it here: ${instanceUrl}"
+            }
+        }
+        failure {
+            echo 'The pipeline failed. Please check the logs for details.'
+        }
     }
 }
