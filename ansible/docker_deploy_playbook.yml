@@ -149,24 +149,39 @@
       docker_network:
         name: "{{ docker_network_name }}"
         state: present
+
+    - name: Verify Docker Compose file exists on the controller
+      stat:
+        path: "{{ compose_local_path }}"
+      register: compose_file
+
+    - name: Fail if Docker Compose file does not exist
+      fail:
+        msg: "The Docker Compose file does not exist at {{ compose_local_path }}"
+      when: not compose_file.stat.exists
+
     - name: Copy Docker Compose file to the EC2 instance
       copy:
         src: "{{ compose_local_path }}"
         dest: "{{ compose_remote_path }}"
+      when: compose_file.stat.exists
+
     - name: Start Docker containers from Docker Compose
       shell: |
         docker-compose up -d
       args:
         chdir: "{{ project_src_path }}"
+
     - name: Run makemigrations inside backend container
       command: docker exec {{ backend_container_name }} python manage.py makemigrations
+
     - name: Run migrate inside backend container
       command: docker exec {{ backend_container_name }} python manage.py migrate
+
     - name: Create superuser inside backend container
       command: >
         docker exec {{ backend_container_name }} python manage.py shell -c
         "from django.contrib.auth import get_user_model;
         User = get_user_model();
         User.objects.filter(username='{{ superuser_username }}').exists() or
-        User.objects.create_superuser('{{ superuser_username }}', '{{ superuser_email }}', '{{ superuser_password
-        }}')"
+        User.objects.create_superuser('{{ superuser_username }}', '{{ superuser_email }}', '{{ superuser_password }}')"
