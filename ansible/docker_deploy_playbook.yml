@@ -114,12 +114,11 @@
   vars_files:
   - ansible-vars.yaml
   tasks:
-    - name: Log in to Amazon ECR  
-      docker_login:
-        registry_url: "{{ ecr_url }}"
-        username: AWS
-        password: "{{ lookup('pipe', 'aws ecr get-login-password --region ' + region) }}"
-        reauthorize: yes
+    - name: Log in to Amazon ECR
+      shell: | 
+        aws ecr get-login-password --region {{ region }} | docker login --username AWS --password-stdin {{ ecr_url }}
+      args:
+        executable: /bin/bash
     - name: Pull frontend Docker image from ECR
       docker_image:
         name: "{{ ecr_url }}/{{ ecr_repository }}"
